@@ -14,25 +14,23 @@ model_client = OpenAIChatCompletionClient(
     model_info=ModelInfo(
         vision=False,
         function_calling=False,
-        json_output=True,
+        json_output=False,
         family="unknown",
         structured_output=True,
-        multiple_system_messages=True
+        multiple_system_messages=True,
     ),
     api_key="anything",
+    max_tokens=64
 )
 
 
 class MedQAResponse4Options(BaseModel):
     """Response model for medical questions."""
-
-    thought: str
     response: Literal["A", "B", "C", "D"]
 
 
-class MedQAResponse5Options(MedQAResponse4Options):
+class MedQAResponse5Options(BaseModel):
     """Response model for 5-option medical questions."""
-
     response: Literal["A", "B", "C", "D", "E"]
 
 
@@ -52,7 +50,20 @@ class MedQAAgent(StatefulAssistantAgent):
         super().__init__(
             name="MedQAAgent",
             model_client=model_client,
-            system_message="You are a medical question answering agent.",
+            system_message="""You are a medical question answering agent.
+You may only respond based on the options explicitly provided by the user.
+Options will be presented in either a 4-choice or 5-choice multiple-choice format, and your response must strictly follow the format below:
+
+4-choice: Your response must be one of — [A, B, C, D]
+5-choice: Your response must be one of — [A, B, C, D, E]
+
+Example:
+options
+    "A": "...",
+    "B": "...",
+    "C": "...",
+    "D": "..."
+""",
             output_content_type=output_content_type,
         )
 
@@ -63,9 +74,6 @@ class MedQAAgent(StatefulAssistantAgent):
         results = []
         for q in tqdm(query):
             resp = await self.run(task=q)
-            # print(f"질의: {q}")
-            # print(f"응답: {resp.messages[-1].content.response}")
-            # print(f"전체 응답: {resp}")
             results.append(resp.messages[-1].content.response)
             await self.reset_context()
             
