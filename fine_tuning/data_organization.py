@@ -7,7 +7,7 @@ from chat_templates import *
 
 # Constants
 RAW_DATA_DIR = "raw_data"
-OUTPUT_DATA_DIR = "fine_tuning/data"
+OUTPUT_DATA_DIR = "data"
 KORMEDMCQA = "KorMedMCQA"
 MEDQA = "MedQA"
 

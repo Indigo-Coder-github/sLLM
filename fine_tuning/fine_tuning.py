@@ -1,6 +1,5 @@
 import json
 
-from accelerate import Accelerator
 from common import ModelHandler
 from configs import DatasetConfig, LoRAConfig
 from data_loader import DatasetLoader
@@ -28,45 +27,43 @@ class FineTuner:
             self.lora_config = None
 
         self.is_quantization = is_quantization
-
+    
     def load_model_and_tokenizer(self, torch_dtype="bfloat16"):
         self.model_handler = ModelHandler(
             model_source=self.model_id,
             quantization=self.is_quantization,
             torch_dtype=torch_dtype,
-            attn_implementation="eager",
         )
 
-    def _prepare_dataset(self, dataset):
-        def apply_chat_template(x):
-            self.model_handler.tokenizer.apply_chat_template(x, tokenize=False, return_tensors="pt")
-
-        return dataset.map(apply_chat_template)
+    def apply_chat_template(self, x):
+        x["text"] = self.model_handler.tokenizer.apply_chat_template(x["text"], tokenize=False, return_tensors="pt")
+        
+        return x
 
     def train(self, train_dataset, eval_dataset, max_seq_length, **kwargs):
-        train_dataset = self._prepare_dataset(train_dataset)
-        eval_dataset = self._prepare_dataset(eval_dataset)
+        train_dataset = train_dataset.map(self.apply_chat_template)
+        eval_dataset = eval_dataset.map(self.apply_chat_template)
 
         sft_config = SFTConfig(
-            output_dir=f"./fine_tuning/fine_tuned/{self.model_id.split('/')[-1]}",
+            output_dir=f"./fine_tuned/{self.model_id.split('/')[-1]}",
             overwrite_output_dir=True,
+            save_total_limit=1,
             do_train=True,
             do_eval=True,
             eval_strategy="steps",
             load_best_model_at_end=True,
             metric_for_best_model="eval_loss",
             greater_is_better=False,
-            torch_compile=True,
+            torch_compile=False,
             gradient_checkpointing=True,
             gradient_checkpointing_kwargs={"use_reentrant": False},
-            num_train_epochs=kwargs.get("num_train_epochs", 3),
             max_seq_length=max_seq_length,
             dataset_text_field="text",
             report_to="none",
             bf16=True,
             **kwargs,
         )
-
+        
         trainer = SFTTrainer(
             model=self.model_handler.model,
             processing_class=self.model_handler.tokenizer,
@@ -80,8 +77,6 @@ class FineTuner:
 
 
 if __name__ == "__main__":
-    
-    accelerator = Accelerator()
 
     options = {
         "option_finetuning": True,
@@ -91,9 +86,9 @@ if __name__ == "__main__":
     }
 
     # Load models and their kwargs
-    with open("fine_tuning/models.json", "r") as f:
+    with open("models.json", "r") as f:
         models = json.load(f)
-    with open("fine_tuning/models_finetuning_kwargs.json", "r") as f:
+    with open("models_finetuning_kwargs.json", "r") as f:
         models_kwargs = json.load(f)
 
     # Load datasets using DatasetLoader
@@ -103,7 +98,7 @@ if __name__ == "__main__":
     # Load lora configuration
     lora_config = LoRAConfig()
     
-    for model_id in ["google/medgemma-27b-text-it"]:#models["sota_70b_quantized_model_id_list"]:
+    for model_id in ["google/medgemma-4b-it"]:#models["sota_70b_quantized_model_id_list"]:
         fine_tuner = FineTuner(
             model_id,
             is_quantization=options["option_BitsAndBytes"],
@@ -117,11 +112,5 @@ if __name__ == "__main__":
             train_dataset=dataset_loader.fine_tuning_datasets,
             eval_dataset=dataset_loader.validation_datasets,
             max_seq_length=1536,
-            **models_kwargs[model_id],
-        )
-        fine_tuner.model_handler.model.save_pretrained(
-            f"./fine_tuned/{model_id.split('/')[-1]}/"
-        )
-        fine_tuner.model_handler.tokenizer.save_pretrained(
-            f"./fine_tuned/{model_id.split('/')[-1]}/"
+            **models_kwargs["medical_model_kwargs"][model_id],
         )

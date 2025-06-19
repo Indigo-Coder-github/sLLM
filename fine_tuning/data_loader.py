@@ -19,24 +19,26 @@ class DatasetLoader:
                 self.load_distillation_dataset()["train"].select_columns(["text"]),
             ]
         )
-        self.validation_datasets = DatasetDict(
-            {
-                "kormedmcqa_dentist": self.load_kormedmcqa_dataset()["dentist"]["validation"].select_columns(["text"]),
-                "kormedmcqa_doctor": self.load_kormedmcqa_dataset()["doctor"]["validation"].select_columns(["text"]),
-                "kormedmcqa_nurse": self.load_kormedmcqa_dataset()["nurse"]["validation"].select_columns(["text"]),
-                "kormedmcqa_pharm": self.load_kormedmcqa_dataset()["pharm"]["validation"].select_columns(["text"]),
-                "medqa_5_options": self.load_medqa_dataset()["medqa_5_options"]["validation"].select_columns(["text"]),
-                "medqa_4_options": self.load_medqa_dataset()["medqa_4_options"]["validation"].select_columns(["text"]),
-            }
+        self.validation_datasets = concatenate_datasets(
+            [
+                self.load_kormedmcqa_dataset()["dentist"]["validation"].select_columns(["text"]),
+                self.load_kormedmcqa_dataset()["doctor"]["validation"].select_columns(["text"]),
+                self.load_kormedmcqa_dataset()["nurse"]["validation"].select_columns(["text"]),
+                self.load_kormedmcqa_dataset()["pharm"]["validation"].select_columns(["text"]),
+                self.load_medqa_dataset()["medqa_5_options"]["validation"].select_columns(["text"]),
+                self.load_medqa_dataset()["medqa_4_options"]["validation"].select_columns(["text"]),
+                self.load_asan_healthinfo_dataset()["validation"].select_columns(["text"]),
+                self.load_gen_gpt_dataset()["validation"].select_columns(["text"]),
+            ]
         )
         self.test_datasets = DatasetDict(
             {
-                "kormedmcqa_dentist": self.load_kormedmcqa_dataset()["dentist"]["test"].select_columns(["text"]),
-                "kormedmcqa_doctor": self.load_kormedmcqa_dataset()["doctor"]["test"].select_columns(["text"]),
-                "kormedmcqa_nurse": self.load_kormedmcqa_dataset()["nurse"]["test"].select_columns(["text"]),
-                "kormedmcqa_pharm": self.load_kormedmcqa_dataset()["pharm"]["test"].select_columns(["text"]),
-                "medqa_5_options": self.load_medqa_dataset()["medqa_5_options"]["test"].select_columns(["text"]),
-                "medqa_4_options": self.load_medqa_dataset()["medqa_4_options"]["test"].select_columns(["text"]),
+                "kormedmcqa_dentist": self.load_kormedmcqa_dataset()["dentist"]["test"],
+                "kormedmcqa_doctor": self.load_kormedmcqa_dataset()["doctor"]["test"],
+                "kormedmcqa_nurse": self.load_kormedmcqa_dataset()["nurse"]["test"],
+                "kormedmcqa_pharm": self.load_kormedmcqa_dataset()["pharm"]["test"],
+                "medqa_5_options": self.load_medqa_dataset()["medqa_5_options"]["test"],
+                "medqa_4_options": self.load_medqa_dataset()["medqa_4_options"]["test"],
             }
         )
         
@@ -45,7 +47,7 @@ class DatasetLoader:
         for dataset_name in ["dentist", "doctor", "nurse", "pharm"]:
             dataset = load_dataset(
                 "json",
-                data_dir=f"fine_tuning/data/KorMedMCQA/{dataset_name}/",
+                data_dir=f"data/KorMedMCQA/{dataset_name}/",
                 data_files=self.config.split_files,
             )
             datasets[f"{dataset_name}"] = dataset
@@ -56,12 +58,12 @@ class DatasetLoader:
         datasets = {}
         medqa_5 = load_dataset(
             "json",
-            data_dir="fine_tuning/data/MedQA/5_options/",
+            data_dir="data/MedQA/5_options/",
             data_files=self.config.split_files,
         )
         medqa_4 = load_dataset(
             "json",
-            data_dir="fine_tuning/data/MedQA/4_options/",
+            data_dir="data/MedQA/4_options/",
             data_files=self.config.split_files,
         )
         datasets["medqa_5_options"] = medqa_5
@@ -72,7 +74,7 @@ class DatasetLoader:
     def load_asan_healthinfo_dataset(self) -> Dataset:
         dataset = load_dataset(
             "json",
-            data_files="fine_tuning/data/Asan-AMC-Healthinfo.jsonl",
+            data_files="data/Asan-AMC-Healthinfo.jsonl",
             split=None
         )
         return dataset
@@ -80,14 +82,14 @@ class DatasetLoader:
     def load_gen_gpt_dataset(self) -> Dataset:
         dataset = load_dataset(
             "json",
-            data_files="fine_tuning/data/GenMedGPT_5k_ko.jsonl",
+            data_files="data/GenMedGPT_5k_ko.jsonl",
         )
         return dataset
     
     def load_distillation_dataset(self) -> Dataset:
         dataset = load_dataset(
             "json",
-            data_dir="fine_tuning/data/distillation_gemini/",
+            data_dir="data/distillation_gemini/",
             split=None
         )
         return dataset

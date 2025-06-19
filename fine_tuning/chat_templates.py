@@ -52,7 +52,7 @@ def generate_medqa_answer(x) -> str:
     if "explanation" in x:
         return f"### Answer: {x['answer_idx']}: {x['answer']}\n### Explanation: {x['explanation']}"
     else:
-        return f"### Answer: {x['answer_idx']}: {x['answer']}"
+        return f"### Answer: {x['answer_idx']}: {x['answer']}\n### Explanation: "
 
 def korean_chat_template(question: str, answer=None) -> list[dict[str, str]]:
     """한국어 훈련용 chat template"""
@@ -65,6 +65,8 @@ def korean_chat_template(question: str, answer=None) -> list[dict[str, str]]:
     ]
     if answer:
         messages.append({"role": "assistant", "content": answer})
+    else:
+        messages.append({"role": "assistant", "content": "### 정답: "})
     return messages
 
 def english_chat_template(question: str, answer=None) -> list[dict[str, str]]:
@@ -78,6 +80,8 @@ def english_chat_template(question: str, answer=None) -> list[dict[str, str]]:
     ]
     if answer:
         messages.append({"role": "assistant", "content": answer})
+    else:
+        messages.append({"role": "assistant", "content": "### Answer: "})
     return messages
 
 def asan_healthinfo_prompt(instruction: str, output: str) -> list[dict[str, str]]:

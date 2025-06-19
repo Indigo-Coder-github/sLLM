@@ -4,11 +4,11 @@ from transformers.utils.quantization_config import BitsAndBytesConfig
 
 
 class ModelHandler:
-    def __init__(self, model_source: str, quantization: bool = False, torch_dtype="bfloat16", attn_implementation="flash_attention_2"):
+    def __init__(self, model_source: str, quantization: bool = False, torch_dtype="bfloat16"):
         self.model_source = model_source
         self.is_quantization = quantization
         self.torch_dtype = torch_dtype
-        self.attn_implementation = attn_implementation
+        #self.attn_implementation = attn_implementation
         self.model, self.tokenizer = self._load_model_and_tokenizer()
 
     def _get_quantization_config(self) -> BitsAndBytesConfig:
@@ -25,7 +25,7 @@ class ModelHandler:
             model = AutoModelForCausalLM.from_pretrained(
                 self.model_source,
                 quantization_config=quant_config,
-                attn_implementation=self.attn_implementation,
+                #attn_implementation=self.attn_implementation,
                 torch_dtype=self.torch_dtype,
                 #device_map="auto",
                 low_cpu_mem_usage=True,
@@ -34,7 +34,7 @@ class ModelHandler:
         else:
             model = AutoModelForCausalLM.from_pretrained(
                 self.model_source,
-                attn_implementation=self.attn_implementation,
+                #attn_implementation=self.attn_implementation,
                 torch_dtype=self.torch_dtype,
                 #device_map="auto",
                 low_cpu_mem_usage=True,
